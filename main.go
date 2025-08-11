@@ -1,7 +1,78 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+)
+
+type Item struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+func GetItems(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	list := []Item{{1, "alpha"}, {2, "beta"}}
+	if err := json.NewEncoder(w).Encode(list); err != nil {
+		http.Error(w, "encode error", http.StatusInternalServerError)
+	}
+}
+
+type CreateItem struct {
+	Name string `json:"name"`
+}
+
+func createItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+	var in CreateItem
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		http.Error(w, "bad json", 400)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(Item{ID: 3, Name: in.Name})
+}
+
+var items = []Item{{1, "alpha"}, {2, "beta"}}
+
+func itemsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(items)
+	case http.MethodPost:
+		var in CreateItem
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			http.Error(w, "bad json", 400)
+			return
+		}
+		it := Item{ID: len(items) + 1, Name: in.Name}
+		items = append(items, it)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(it)
+	default:
+		http.Error(w, "method not allowed", 405)
+	}
+}
 
 func main() {
-	fmt.Println("Go is ready in Codespaces.")
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	http.HandleFunc("/api/v1/items", itemsHandler)      //multi method
+	http.HandleFunc("/api/v1/items/get", GetItems)      //get
+	http.HandleFunc("/api/v1/items/create", createItem) // POST
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
 }
