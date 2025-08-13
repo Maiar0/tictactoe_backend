@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	sqlite "github.com/Maiar0/tictactoe_backend/internal/store"
+	tttStore "github.com/Maiar0/tictactoe_backend/internal/tictactoe/store"
 )
 
 type Item struct {
@@ -66,21 +66,33 @@ func itemsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", 405)
 	}
 }
+func createTTTGame() {
+
+	id, err := tttStore.CreateGame()
+	if err != nil {
+		log.Fatalf("[Main] Failed to create game: %v", err)
+	}
+
+	log.Printf("[Main] Game created successfully with ID: %s\n", id)
+}
+func gameHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPost{
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	var in 
+}
 
 func main() {
-	st := sqlite.New("Storage/games")
-	db, err := st.OpenFor("demo")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	log.Println("[Main] Starting TicTacToe backend test...")
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
-	http.HandleFunc("/api/v1/items", itemsHandler)      //multi method
-	http.HandleFunc("/api/v1/items/get", GetItems)      //get
-	http.HandleFunc("/api/v1/items/create", createItem) // POST
+	http.HandleFunc("/api/v1/items", itemsHandler)        //multi method
+	http.HandleFunc("/api/v1/items/get", GetItems)        //get
+	http.HandleFunc("/api/v1/items/create", createItem)   // POST
+	http.HandleFunc("/api/v1/game/create", createTTTGame) // POST
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
