@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	sqlite "github.com/Maiar0/tictactoe_backend/internal/store"
 )
 
 type Item struct {
@@ -66,6 +68,13 @@ func itemsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	st := sqlite.New("Storage/games")
+	db, err := st.OpenFor("demo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
