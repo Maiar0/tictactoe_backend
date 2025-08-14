@@ -75,12 +75,37 @@ func createTTTGame() {
 
 	log.Printf("[Main] Game created successfully with ID: %s\n", id)
 }
-func gameHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPost{
+
+type newGameReq struct {
+	PlayerUUID string `json:"player_uuid"`
+}
+type newGameResp struct {
+	GameID string `json:"game_id"`
+}
+
+func gameHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("[GameHandler] Request received: ", r.Method, r.URL.Path)
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	var in 
+	var in newGameReq
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+	log.Println("[GameHandler] Creating new game for player UUID: ", in.PlayerUUID)
+	id, err := tttStore.CreateGame()
+	if err != nil {
+		http.Error(w, "Failed to create game", 500)
+		return
+	}
+	var res newGameResp
+	res.GameID = id
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(res)
+	log.Println("[GameHandler] Game created successfully with ID: ", id)
 }
 
 func main() {
@@ -89,10 +114,17 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
-	http.HandleFunc("/api/v1/items", itemsHandler)        //multi method
-	http.HandleFunc("/api/v1/items/get", GetItems)        //get
-	http.HandleFunc("/api/v1/items/create", createItem)   // POST
-	http.HandleFunc("/api/v1/game/create", createTTTGame) // POST
+	http.HandleFunc("/api/v1/items", itemsHandler)      //multi method
+	http.HandleFunc("/api/v1/items/get", GetItems)      //get
+	http.HandleFunc("/api/v1/items/create", createItem) // POST
+	http.HandleFunc("/api/v1/game/create", gameHandler) // POST
+
+	// Serve static files
+	http.HandleFunc("/test/create_game", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/test/create_game" {
+			http.ServeFile(w, r, "test/create_game.html")
+		}
+	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 

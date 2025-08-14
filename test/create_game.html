@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Create Game</title>
+    <style>
+        #result {
+            border: 2px solid #333;
+            background: #f0f0f0;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <input id="uuid" placeholder="Player UUID"><br><br>
+    <button onclick="createGame()">Create Game</button><br><br>
+    <div id="result"></div>
+
+    <script>
+        async function createGame() {
+            const uuid = document.getElementById('uuid').value;
+            const response = await fetch('/api/v1/game/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player_uuid: uuid })
+            });
+            const data = await response.json();
+            document.getElementById('result').innerHTML = 'Game ID: ' + data.game_id;
+        }
+    </script>
+</body>
+
+</html>
