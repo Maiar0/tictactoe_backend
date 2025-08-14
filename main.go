@@ -1,135 +1,29 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
-	tttStore "github.com/Maiar0/tictactoe_backend/internal/tictactoe/store"
+	tttApi "github.com/Maiar0/tictactoe_backend/internal/tictactoe/api"
+	utils "github.com/Maiar0/tictactoe_backend/internal/utils"
 )
-
-type Item struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-func GetItems(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	list := []Item{{1, "alpha"}, {2, "beta"}}
-	if err := json.NewEncoder(w).Encode(list); err != nil {
-		http.Error(w, "encode error", http.StatusInternalServerError)
-	}
-}
-
-type CreateItem struct {
-	Name string `json:"name"`
-}
-
-func createItem(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", 405)
-		return
-	}
-	var in CreateItem
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		http.Error(w, "bad json", 400)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(Item{ID: 3, Name: in.Name})
-}
-
-var items = []Item{{1, "alpha"}, {2, "beta"}}
-
-func itemsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(items)
-	case http.MethodPost:
-		var in CreateItem
-		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-			http.Error(w, "bad json", 400)
-			return
-		}
-		it := Item{ID: len(items) + 1, Name: in.Name}
-		items = append(items, it)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(it)
-	default:
-		http.Error(w, "method not allowed", 405)
-	}
-}
-func createTTTGame() {
-
-	id, err := tttStore.CreateGame()
-	if err != nil {
-		log.Fatalf("[Main] Failed to create game: %v", err)
-	}
-
-	log.Printf("[Main] Game created successfully with ID: %s\n", id)
-}
-
-type newGameReq struct {
-	PlayerUUID string `json:"player_uuid"`
-}
-type newGameResp struct {
-	GameID string `json:"game_id"`
-}
-
-func gameHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("[GameHandler] Request received: ", r.Method, r.URL.Path)
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-	var in newGameReq
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		http.Error(w, "Bad request", 400)
-		return
-	}
-	if in.PlayerUUID == "" {
-		http.Error(w, "Player UUID is required", 400)
-		return
-	}
-	log.Println("[GameHandler] Creating new game for player UUID: ", in.PlayerUUID)
-	id, err := tttStore.CreateGame()
-	if err != nil {
-		http.Error(w, "Failed to create game", 500)
-		return
-	}
-	var res newGameResp
-	res.GameID = id
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(res)
-	log.Println("[GameHandler] Game created successfully with ID: ", id)
-}
 
 func main() {
 	log.Println("[Main] Starting TicTacToe backend test...")
-
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
-	http.HandleFunc("/api/v1/items", itemsHandler)      //multi method
-	http.HandleFunc("/api/v1/items/get", GetItems)      //get
-	http.HandleFunc("/api/v1/items/create", createItem) // POST
-	http.HandleFunc("/api/v1/game/create", gameHandler) // POST
+	tttApi.Register(mux)
+	loggedMux := utils.LoggingMiddleware(mux)
 
-	// Serve static files
+	// Serve static files test cases
 	http.HandleFunc("/test/create_game", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/test/create_game" {
 			http.ServeFile(w, r, "test/create_game.html")
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", loggedMux))
 
 }
