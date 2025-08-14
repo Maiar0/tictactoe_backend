@@ -94,6 +94,10 @@ func gameHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", 400)
 		return
 	}
+	if in.PlayerUUID == "" {
+		http.Error(w, "Player UUID is required", 400)
+		return
+	}
 	log.Println("[GameHandler] Creating new game for player UUID: ", in.PlayerUUID)
 	id, err := tttStore.CreateGame()
 	if err != nil {
