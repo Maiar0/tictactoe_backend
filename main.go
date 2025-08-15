@@ -18,7 +18,7 @@ func main() {
 	loggedMux := utils.LoggingMiddleware(mux)
 
 	// Serve static files test cases
-	http.HandleFunc("/test/create_game", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/test/create_game", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/test/create_game" {
 			http.ServeFile(w, r, "test/create_game.html")
 		}

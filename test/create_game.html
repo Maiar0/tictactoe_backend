@@ -11,6 +11,16 @@
             margin-top: 10px;
             font-weight: bold;
         }
+
+        #error {
+            border: 2px solid #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
     </style>
 </head>
 
@@ -18,17 +28,37 @@
     <input id="uuid" placeholder="Player UUID"><br><br>
     <button onclick="createGame()">Create Game</button><br><br>
     <div id="result"></div>
+    <div id="error"></div>
 
     <script>
         async function createGame() {
             const uuid = document.getElementById('uuid').value;
-            const response = await fetch('/api/v1/game/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ player_uuid: uuid })
-            });
-            const data = await response.json();
-            document.getElementById('result').innerHTML = 'Game ID: ' + data.game_id;
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            // Clear previous results
+            resultDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/v1/game/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_uuid: uuid })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = 'Game ID: ' + data.game_id;
+                } else {
+                    const errorText = await response.text();
+                    errorDiv.innerHTML = `Error ${response.status}: ${errorText}`;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.innerHTML = `Network Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
         }
     </script>
 </body>
