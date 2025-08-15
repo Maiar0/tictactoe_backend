@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	baseDir      = "Storage/games"
+	baseDir      = "Storage/games/tictactoe"
 	schemaPath   = "internal/tictactoe/store/schema.sql"
 	initialState = ".........X" //9 blank squares last value is whose turn it is WIP
 )
@@ -38,8 +38,8 @@ func CreateGame() (string, error) {
 	}
 	defer db.Close()
 	log.Println("[CreateGame] DB Opened succesfully: ", id)
-	res, err := db.Exec(`INSERT INTO game(id,state,player_one,player_two,last_update,status)
-	                  VALUES (?,?,?,?,?,?)`, id, initialState, "", "", time.Now().Unix(), "active") //TODO:: we will want to capture the return here
+	res, err := db.Exec(`INSERT INTO game(state,player_one,player_two,last_update,status)
+	                  VALUES (?,?,?,?,?)`, initialState, "", "", time.Now().Unix(), "active")
 	if err != nil {
 		return "", err
 	}

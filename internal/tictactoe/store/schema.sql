@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS game(
-		id TEXT PRIMARY KEY,
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		state TEXT NOT NULL,
 		player_one TEXT,
 		player_two TEXT,
