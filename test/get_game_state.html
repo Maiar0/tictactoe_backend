@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Get Game State</title>
+    <style>
+        #result {
+            border: 2px solid #333;
+            background: #f0f0f0;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #error {
+            border: 2px solid #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        input {
+            width: 200px;
+            padding: 8px;
+            margin: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Get Game State</h2>
+
+    <input id="gameId" placeholder="Game ID"><br>
+    <input id="playerId" placeholder="Player ID"><br>
+    <button onclick="getGameState()">Get Game State</button><br><br>
+
+    <div id="result"></div>
+    <div id="error"></div>
+
+    <script>
+        async function getGameState() {
+            const gameId = document.getElementById('gameId').value.trim();
+            const playerId = document.getElementById('playerId').value.trim();
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            // Clear previous results
+            resultDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+
+            if (!gameId || !playerId) {
+                errorDiv.innerHTML = 'Please enter both Game ID and Player ID';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/game/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        game_id: gameId,
+                        player_id: playerId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `Game State: ${data.game_state}`;
+                } else {
+                    const errorText = await response.text();
+                    errorDiv.innerHTML = `Error ${response.status}: ${errorText}`;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.innerHTML = `Network Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

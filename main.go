@@ -23,6 +23,12 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("/test/get_game_state", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/test/get_game_state" {
+			http.ServeFile(w, r, "test/get_game_state.html")
+		}
+	})
+
 	loggedMux := utils.LoggingMiddleware(mux)
 	log.Fatal(http.ListenAndServe(":8080", loggedMux))
 
