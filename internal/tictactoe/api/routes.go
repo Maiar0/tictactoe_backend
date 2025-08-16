@@ -16,8 +16,8 @@ type newGameResp struct {
 	GameID string `json:"game_id"`
 }
 
-func gameHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("[GameHandler] Request received: ", r.Method, r.URL.Path)
+func newGame(w http.ResponseWriter, r *http.Request) {
+	log.Println("[newGame] Request received: ", r.Method, r.URL.Path)
 	if r.Method != http.MethodPost {
 		utils.WriteError(w, http.StatusMethodNotAllowed, "Method not Allowed.")
 		return
@@ -32,8 +32,8 @@ func gameHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusBadRequest, "Player UUID Required.")
 		return
 	}
-	log.Println("[GameHandler] Creating new game for player UUID: ", in.PlayerUUID)
-	id, err := tttStore.CreateGame()
+	log.Println("[newGame] Creating new game for player UUID: ", in.PlayerUUID)
+	id, err := tttStore.NewGame()
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to create game.")
 		return
@@ -41,13 +41,13 @@ func gameHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(newGameResp{GameID: id}); err != nil {
-		log.Printf("[GameHandler] encode error: %v", err)
+		log.Printf("[newGame] encode error: %v", err)
 	}
-	log.Println("[GameHandler] Game created successfully with ID: ", id)
+	log.Println("[newGame] Game created successfully with ID: ", id)
 }
 
 func Register(mux *http.ServeMux) {
 	log.Printf("[Register] tictactoe api endpoints")
-	mux.HandleFunc("/api/v1/game/create", gameHandler) // POST
+	mux.HandleFunc("/api/v1/game/create", newGame) // POST
 
 }

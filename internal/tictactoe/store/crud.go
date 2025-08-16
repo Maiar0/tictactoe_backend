@@ -15,12 +15,12 @@ func NewGameStore(db *sql.DB) *GameStore {
 }
 
 // CreateGameState inserts a new row representing a game state
-func (g *GameStore) CreateGameState(state, playerOne, playerTwo, status string) error {
-	_, err := g.db.Exec(`
+func (g *GameStore) CreateGameState(state, playerOne, playerTwo, status string) (sql.Result, error) {
+	result, err := g.db.Exec(`
         INSERT INTO game (state, player_one, player_two, last_update, status)
         VALUES (?, ?, ?, ?, ?)
     `, state, playerOne, playerTwo, time.Now().Unix(), status)
-	return err
+	return result, err
 }
 
 // ReadGameState queries rows by a field and value or all if no value

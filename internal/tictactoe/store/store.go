@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"log"
 	"math/big"
-	"time"
 
 	sqlite "github.com/Maiar0/tictactoe_backend/internal/store"
 )
@@ -26,7 +25,7 @@ func newGameID() string { //TODO:: huh
 	return string(b)
 }
 
-func CreateGame() (string, error) {
+func NewGame() (string, error) {
 	log.Println("[CreateGame] Starting new game creation: ", baseDir, " : ", schemaPath, " : ", initialState)
 	id := newGameID()
 	log.Println("[CreateGame] Generated game ID", id)
@@ -38,8 +37,9 @@ func CreateGame() (string, error) {
 	}
 	defer db.Close()
 	log.Println("[CreateGame] DB Opened succesfully: ", id)
-	res, err := db.Exec(`INSERT INTO game(state,player_one,player_two,last_update,status)
-	                  VALUES (?,?,?,?,?)`, initialState, "", "", time.Now().Unix(), "active")
+	gameStore := NewGameStore(db)
+	res, err := gameStore.CreateGameState(initialState, "", "", "active")
+	defer db.Close()
 	if err != nil {
 		return "", err
 	}
