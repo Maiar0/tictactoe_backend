@@ -19,35 +19,71 @@ type newGameResp struct {
 func newGame(w http.ResponseWriter, r *http.Request) {
 	log.Println("[newGame] Request received: ", r.Method, r.URL.Path)
 	if r.Method != http.MethodPost {
-		utils.WriteError(w, http.StatusMethodNotAllowed, "Method not Allowed.")
+		utils.WriteJSONError(w, http.StatusMethodNotAllowed, "Method not Allowed.")
 		return
 	}
-	http.MaxBytesReader(w, r.Body, 1<<20)
-	var in newGameReq
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "Bad Request")
+	//read request body
+	var req newGameReq
+	if err := utils.ReadRequestBody(w, r, &req); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
-	if in.PlayerUUID == "" {
-		utils.WriteError(w, http.StatusBadRequest, "Player UUID Required.")
+	//logic
+	if req.PlayerUUID == "" {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID Required.")
 		return
 	}
-	log.Println("[newGame] Creating new game for player UUID: ", in.PlayerUUID)
+	log.Println("[newGame] Creating new game for player UUID: ", req.PlayerUUID)
 	id, err := tttStore.NewGame()
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "Failed to create game.")
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create game.")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(newGameResp{GameID: id}); err != nil {
-		log.Printf("[newGame] encode error: %v", err)
-	}
+	//write response
+	utils.WriteJSONResponse(w, http.StatusCreated, newGameResp{GameID: id})
 	log.Println("[newGame] Game created successfully with ID: ", id)
 }
 
+type getGameStateReq struct {
+	PlayerUUID string `json:"player_uuid"`
+	GameID     string `json:"game_id"`
+}
+type getGameStateResp struct {
+	GameState string `json:"game_state"`
+}
+
+func getGameState(w http.ResponseWriter, r *http.Request) {
+	log.Println("[getGameState] Request received: ", r.Method, r.URL.Path)
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, http.StatusMethodNotAllowed, "Method not Allowed.")
+		return
+	}
+	var req getGameStateReq
+	if err := utils.ReadRequestBody(w, r, &req); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+	if req.PlayerUUID == "" || req.GameID == "" {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID and Game ID Required.")
+		return
+	}
+	log.Println("[getGameState] Getting game state for player UUID: ", req.PlayerUUID, " and game ID: ", req.GameID)
+	gameState, err := tttStore.GetGameState(req.GameID)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get game state.")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(getGameStateResp{GameState: gameState}); err != nil {
+		log.Printf("[getGameState] encode error: %v", err)
+	}
+	log.Println("[getGameState] Game state retrieved successfully: ", gameState)
+
+}
 func Register(mux *http.ServeMux) {
 	log.Printf("[Register] tictactoe api endpoints")
-	mux.HandleFunc("/api/v1/game/create", newGame) // POST
+	mux.HandleFunc("/api/v1/game/create", newGame)     // POST
+	mux.HandleFunc("/api/v1/game/state", getGameState) // GET
 
 }

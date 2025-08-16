@@ -24,7 +24,7 @@ func (g *GameStore) CreateGameState(state, playerOne, playerTwo, status string) 
 }
 
 // ReadGameState queries rows by a field and value or all if no value
-func (g *GameStore) ReadGame(field string, values ...interface{}) (*sql.Rows, error) {
+func (g *GameStore) ReadGameState(field string, values ...any) (*sql.Rows, error) {
 	if len(values) == 0 {
 		// No value provided → read all rows
 		return g.db.Query("SELECT * FROM game")
@@ -34,9 +34,9 @@ func (g *GameStore) ReadGame(field string, values ...interface{}) (*sql.Rows, er
 }
 
 // UpdateGameState updates columns in rows that match field=value
-func (g *GameStore) UpdateGameState(field string, value interface{}, updates map[string]interface{}) (sql.Result, error) {
+func (g *GameStore) UpdateGameState(field string, value any, updates map[string]any) (sql.Result, error) {
 	setClause := ""
-	args := []interface{}{}
+	args := []any{}
 	for k, v := range updates {
 		if setClause != "" {
 			setClause += ", "
@@ -50,7 +50,7 @@ func (g *GameStore) UpdateGameState(field string, value interface{}, updates map
 }
 
 // DeleteGameState deletes rows matching field=value
-func (g *GameStore) DeleteGameState(field string, value interface{}) (sql.Result, error) {
+func (g *GameStore) DeleteGameState(field string, value any) (sql.Result, error) {
 	query := fmt.Sprintf("DELETE FROM game WHERE %s = ?", field)
 	return g.db.Exec(query, value)
 }

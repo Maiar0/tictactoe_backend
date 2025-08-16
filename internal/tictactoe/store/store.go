@@ -35,7 +35,7 @@ func NewGame() (string, error) {
 		log.Println("[CreateGame] Failed to open DB: ", err)
 		return "", err
 	}
-	defer db.Close()
+
 	log.Println("[CreateGame] DB Opened succesfully: ", id)
 	gameStore := NewGameStore(db)
 	res, err := gameStore.CreateGameState(initialState, "", "", "active")
@@ -46,4 +46,36 @@ func NewGame() (string, error) {
 	insertID, _ := res.LastInsertId() // return PK
 	log.Println("[CreateGame] Game inserted succesfully. Insert ID: ", insertID)
 	return id, nil
+}
+
+func GetGameState(gameID string) (string, error) {
+	log.Println("[GetGameState] Getting game state for game ID: ", gameID)
+	st := sqlite.New(baseDir)
+	db, err := st.OpenFor(gameID, schemaPath)
+	if err != nil {
+		log.Println("[GetGameState] Failed to open DB: ", err)
+		return "", err
+	}
+	log.Println("[GetGameState] DB Opened succesfully: ", gameID)
+	gameStore := NewGameStore(db)
+	rows, err := gameStore.ReadGameState("id")
+	if err != nil {
+		log.Println("[GetGameState] Failed to read game state: ", err)
+		return "", err
+	}
+	var highestID int16
+	var state string
+	for rows.Next() {
+		var id int16
+		if err := rows.Scan(&id, &state); err != nil {
+			log.Println("[GetGameState] Failed to scan row: ", err)
+			return "", err
+		}
+		if id > highestID {
+			highestID = id
+		}
+		log.Println("[GetGameState] ID: ", id, " State: ", state)
+	}
+	defer db.Close()
+	return state, nil
 }
