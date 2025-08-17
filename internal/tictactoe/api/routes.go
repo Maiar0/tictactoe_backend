@@ -169,19 +169,18 @@ func makeMove(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusForbidden, "It's not your turn.")
 		return
 	}
-	/*
-		//validate turn
-		turn := gameState.State[9]
-		var playersTurn string
-		if turn == 'x' {
-			playersTurn = gameState.PlayerX
-		} else {
-			playersTurn = gameState.PlayerO
-		}
-		if playersTurn != req.PlayerUUID {
-			utils.WriteJSONError(w, http.StatusForbidden, "It's not your turn.")
-			return
-		}*/
+	//validate turn
+	turn := gameState.State[9]
+	var playersTurn string
+	if turn == 'x' {
+		playersTurn = gameState.PlayerX
+	} else {
+		playersTurn = gameState.PlayerO
+	}
+	if playersTurn != req.PlayerUUID {
+		utils.WriteJSONError(w, http.StatusForbidden, "It's not your turn.")
+		return
+	}
 	//begin move logic
 	log.Println("[makeMove] Making move for player UUID: ", req.PlayerUUID, " and game ID: ", req.GameID, " with move: ", req.Move)
 	finalGameState, err := tttService.MakeMove(req.GameID, req.Move)
