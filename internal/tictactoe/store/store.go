@@ -14,6 +14,15 @@ const (
 	initialState = ".........X" //9 blank squares last value is whose turn it is WIP
 )
 
+type GameState struct {
+	ID         int16  `db:"id"`
+	State      string `db:"state"`
+	PlayerOne  string `db:"player_one"`
+	PlayerTwo  string `db:"player_two"`
+	LastUpdate int64  `db:"last_update"`
+	Status     string `db:"status"`
+}
+
 func newGameID() string { //TODO:: huh
 	const bank = "abcdefghijklmnopqrstuvwxyz0123456789"
 	const n = 9
@@ -64,18 +73,20 @@ func GetGameState(gameID string) (string, error) {
 		return "", err
 	}
 	var highestID int16
-	var state string
+	var gameState GameState
 	for rows.Next() {
 		var id int16
-		if err := rows.Scan(&id, &state); err != nil {
+		var state GameState
+		if err := rows.Scan(&id, &state.State, &state.PlayerOne, &state.PlayerTwo, &state.LastUpdate, &state.Status); err != nil {
 			log.Println("[GetGameState] Failed to scan row: ", err)
 			return "", err
 		}
 		if id > highestID {
 			highestID = id
+			gameState = state
 		}
 		log.Println("[GetGameState] ID: ", id, " State: ", state)
 	}
 	defer db.Close()
-	return state, nil
+	return gameState.State, nil
 }

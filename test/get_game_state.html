@@ -62,14 +62,22 @@
                 return;
             }
 
+            // Create request object and log it
+            const requestObj = {
+                player_uuid: playerId,
+                game_id: gameId
+            };
+
+            console.log('[getGameState] Request object:', requestObj);
+            console.log('[getGameState] PlayerUUID value:', requestObj.player_uuid);
+            console.log('[getGameState] GameID value:', requestObj.game_id);
+            console.log('[getGameState] JSON stringified:', JSON.stringify(requestObj));
+
             try {
                 const response = await fetch('/api/v1/game/state', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        game_id: gameId,
-                        player_id: playerId
-                    })
+                    body: JSON.stringify(requestObj)
                 });
 
                 if (response.ok) {

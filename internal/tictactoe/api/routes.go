@@ -63,7 +63,7 @@ func getGameState(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
-	if req.PlayerUUID == "" && req.GameID == "" {
+	if req.PlayerUUID == "" || req.GameID == "" {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID and Game ID Required.")
 		return
 	}
