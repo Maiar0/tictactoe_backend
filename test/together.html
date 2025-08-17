@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TicTacToe API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .button-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .btn-create {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-state {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-move {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .btn-choose {
+            background-color: #6f42c1;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #result {
+            border: 2px solid #333;
+            background: #f0f0f0;
+            padding: 15px;
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 60px;
+        }
+
+        #error {
+            border: 2px solid #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            margin-top: 20px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .response-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎮 TicTacToe API Tester</h1>
+
+    <div class="input-section">
+        <h3>Input Values</h3>
+        <div class="input-group">
+            <label>Player ID:</label>
+            <input id="playerId" placeholder="Enter player UUID">
+        </div>
+        <div class="input-group">
+            <label>Game ID:</label>
+            <input id="gameId" placeholder="Enter game ID">
+        </div>
+        <div class="input-group">
+            <label>Move:</label>
+            <input id="move" placeholder="e.g., x4, o7">
+        </div>
+        <div class="input-group">
+            <label>Choice:</label>
+            <select id="choice">
+                <option value="">Select player choice</option>
+                <option value="X">X (First player)</option>
+                <option value="O">O (Second player)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="button-section">
+        <button class="btn-create" onclick="createGame()">Create Game</button>
+        <button class="btn-state" onclick="getGameState()">Get Game State</button>
+        <button class="btn-move" onclick="makeMove()">Make Move</button>
+        <button class="btn-choose" onclick="choosePlayer()">Choose Player</button>
+    </div>
+
+    <div id="result">Results will appear here...</div>
+    <div id="error"></div>
+
+    <script>
+        // Helper function to clear outputs
+        function clearOutputs() {
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Helper function to show result
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            if (isError) {
+                errorDiv.innerHTML = message;
+                errorDiv.style.display = 'block';
+            } else {
+                resultDiv.innerHTML = message;
+            }
+        }
+
+        // Create Game
+        async function createGame() {
+            clearOutputs();
+            const playerId = document.getElementById('playerId').value.trim();
+
+            if (!playerId) {
+                showResult('Please enter Player ID', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/game/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_uuid: playerId })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Game created successfully!<br><br><strong>Game ID:</strong> ${data.game_id}<br><strong>Player ID:</strong> ${playerId}`);
+                    // Auto-fill the game ID field
+                    document.getElementById('gameId').value = data.game_id;
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Error ${response.status}: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Network Error: ${error.message}`, true);
+            }
+        }
+
+        // Get Game State
+        async function getGameState() {
+            clearOutputs();
+            const gameId = document.getElementById('gameId').value.trim();
+            const playerId = document.getElementById('playerId').value.trim();
+
+            if (!gameId || !playerId) {
+                showResult('Please enter both Game ID and Player ID', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/game/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_uuid: playerId,
+                        game_id: gameId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Game state retrieved!<br><br><strong>Game State:</strong> ${data.game_state}`);
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Error ${response.status}: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Network Error: ${error.message}`, true);
+            }
+        }
+
+        // Make Move
+        async function makeMove() {
+            clearOutputs();
+            const gameId = document.getElementById('gameId').value.trim();
+            const playerId = document.getElementById('playerId').value.trim();
+            const move = document.getElementById('move').value.trim();
+
+            if (!gameId || !playerId || !move) {
+                showResult('Please enter Game ID, Player ID, and Move', true);
+                return;
+            }
+
+            if (move.length !== 2 || !['x', 'o'].includes(move[0].toLowerCase()) || isNaN(move[1]) || move[1] < '0' || move[1] > '8') {
+                showResult('Invalid move format. Use format like "x4" or "o7" (position 0-8)', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/game/move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_uuid: playerId,
+                        game_id: gameId,
+                        move: move.toLowerCase()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Move made successfully!<br><br><strong>New Game State:</strong> ${data.game_state}`);
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Error ${response.status}: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Network Error: ${error.message}`, true);
+            }
+        }
+
+        // Choose Player
+        async function choosePlayer() {
+            clearOutputs();
+            const gameId = document.getElementById('gameId').value.trim();
+            const playerId = document.getElementById('playerId').value.trim();
+            const choice = document.getElementById('choice').value;
+
+            if (!gameId || !playerId || !choice) {
+                showResult('Please enter Game ID, Player ID, and select a choice', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/game/choose_player', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        game_id: gameId,
+                        player_uuid: playerId,
+                        choice: choice.toLowerCase()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Player choice successful!<br><br><strong>You are now playing as:</strong> ${choice}`);
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Error ${response.status}: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Network Error: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+
+</html>

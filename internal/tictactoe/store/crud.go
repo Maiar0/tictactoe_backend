@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -17,9 +18,14 @@ func NewGameStore(db *sql.DB) *GameStore {
 // CreateGameState inserts a new row representing a game state
 func (g *GameStore) CreateGameState(state, playerOne, playerTwo, status string) (sql.Result, error) {
 	result, err := g.db.Exec(`
-        INSERT INTO game (state, player_one, player_two, last_update, status)
+        INSERT INTO game (state, player_x, player_o, last_update, status)
         VALUES (?, ?, ?, ?, ?)
     `, state, playerOne, playerTwo, time.Now().Unix(), status)
+	if err != nil {
+		log.Println("[CreateGameState] Failed to create game state: ", err)
+		return nil, err
+	}
+	log.Println("[CreateGameState] Game state created: ", result)
 	return result, err
 }
 

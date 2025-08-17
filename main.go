@@ -17,15 +17,9 @@ func main() {
 	tttApi.Register(mux)
 
 	// Serve static files test cases
-	mux.HandleFunc("/test/create_game", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/test/create_game" {
-			http.ServeFile(w, r, "test/create_game.html")
-		}
-	})
-
-	mux.HandleFunc("/test/get_game_state", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/test/get_game_state" {
-			http.ServeFile(w, r, "test/get_game_state.html")
+	mux.HandleFunc("/test/together", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/test/together" {
+			http.ServeFile(w, r, "test/together.html")
 		}
 	})
 
