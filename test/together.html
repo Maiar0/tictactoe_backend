@@ -160,6 +160,11 @@
             color: white;
         }
 
+        .btn-register {
+            background-color: #17a2b8;
+            color: white;
+        }
+
         .websocket-log {
             background: #000;
             color: #00ff00;
@@ -222,6 +227,7 @@
             <button id="connectBtn" onclick="connectWebSocket()" class="btn-connect">Connect</button>
             <button id="disconnectBtn" onclick="disconnectWebSocket()" class="btn-disconnect"
                 disabled>Disconnect</button>
+            <button id="registerBtn" onclick="registerPlayer()" class="btn-register" disabled>Register Player</button>
             <button onclick="sendHeartbeat()" class="btn-heartbeat" disabled>Send Heartbeat</button>
         </div>
         <div class="websocket-log">
@@ -411,10 +417,16 @@
                     logWebSocket('✅ WebSocket connected successfully');
                     enableWebSocketControls(true);
                     startHeartbeat();
+
+                    // Don't auto-register anymore - user must click Register button
+                    logWebSocket('📋 WebSocket connected. Click "Register Player" to join.');
                 };
 
                 ws.onmessage = function (event) {
                     logWebSocket(`📨 Received: ${event.data}`);
+
+                    // Simple message handling - just show what we got
+                    showResult(`WebSocket Message: ${event.data}`);
                 };
 
                 ws.onclose = function () {
@@ -445,6 +457,35 @@
             }
         }
 
+        // NEW FUNCTION: Explicit player registration
+        function registerPlayer() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                logWebSocket('❌ WebSocket not connected');
+                return;
+            }
+
+            const playerId = document.getElementById('playerId').value.trim();
+            const gameId = document.getElementById('gameId').value.trim();
+
+            if (!playerId) {
+                logWebSocket('⚠️ Please enter a Player ID first');
+                return;
+            }
+
+            const registerMessage = {
+                message: 'register',
+                player_uuid: playerId,
+                game_id: gameId || ''
+            };
+
+            ws.send(JSON.stringify(registerMessage));
+            logWebSocket('📤 Sent register message: ' + JSON.stringify(registerMessage));
+
+            // Disable register button after successful registration
+            document.getElementById('registerBtn').disabled = true;
+            document.getElementById('registerBtn').textContent = 'Registered';
+        }
+
         function disconnectWebSocket() {
             if (ws) {
                 ws.close();
@@ -452,6 +493,11 @@
             }
             updateConnectionStatus('offline', 'Disconnected');
             enableWebSocketControls(false);
+
+            // Reset register button
+            document.getElementById('registerBtn').disabled = true;
+            document.getElementById('registerBtn').textContent = 'Register Player';
+
             stopHeartbeat();
             logWebSocket('🔌 WebSocket manually disconnected');
         }
@@ -497,6 +543,7 @@
         function enableWebSocketControls(connected) {
             document.getElementById('connectBtn').disabled = connected;
             document.getElementById('disconnectBtn').disabled = !connected;
+            document.getElementById('registerBtn').disabled = !connected; // Enable register button only if connected
             document.querySelector('.btn-heartbeat').disabled = !connected;
         }
 

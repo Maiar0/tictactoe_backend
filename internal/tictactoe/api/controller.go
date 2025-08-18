@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -131,6 +132,7 @@ func choosePlayer(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get game state.")
 		return
 	}
+
 	utils.WriteJSONResponse(w, http.StatusOK, choosePlayerResp{GameState: gameState.State})
 	log.Println("[choosePlayer] Player chosen successfully: ", gameState)
 }
@@ -192,6 +194,13 @@ func makeMove(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to make move.")
 		return
 	}
+	//send game state to websocket
+	gameStateJSON, err := json.Marshal(map[string]string{"game_state": gameState.State})
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to marshal game state.")
+		return
+	}
+	SendToGame(req.GameID, string(gameStateJSON))
 	utils.WriteJSONResponse(w, http.StatusOK, makeMoveResp{GameState: finalGameState})
 	log.Println("[makeMove] Move made successfully: ", gameState)
 }

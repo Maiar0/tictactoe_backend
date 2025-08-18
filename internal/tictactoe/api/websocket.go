@@ -62,6 +62,7 @@ func SendToPlayer(playerUUID, message string) {
 
 // Change from lowercase to uppercase to make it public
 func SendToGame(gameID, message string) {
+	log.Printf("[SendToGame] Sending to game: %s", message)
 	if players, exists := gameGroups[gameID]; exists {
 		for _, playerUUID := range players {
 			if conn, exists := playerConnections[playerUUID]; exists {
@@ -135,6 +136,7 @@ func handleWebSocketMessage(ws *websocket.Conn, message string) {
 		SendToPlayer(msg.PlayerUUID, "heartbeat")
 	case "register":
 		addClient(ws, msg.PlayerUUID)
+		addPlayerToGame(msg.PlayerUUID, msg.GameID)
 		SendToPlayer(msg.PlayerUUID, "registered")
 	case "join_game":
 		addPlayerToGame(msg.PlayerUUID, msg.GameID)
