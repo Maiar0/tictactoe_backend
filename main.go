@@ -10,7 +10,10 @@ import (
 
 func main() {
 	log.Println("[Main] Starting TicTacToe backend test...")
+
 	mux := http.NewServeMux()
+
+	loggedMux := utils.LoggingMiddleware(mux)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
@@ -23,7 +26,6 @@ func main() {
 		}
 	})
 
-	loggedMux := utils.LoggingMiddleware(mux)
 	log.Fatal(http.ListenAndServe(":8080", loggedMux))
 
 }

@@ -105,6 +105,75 @@
             color: #666;
             margin-top: 5px;
         }
+
+        /* WebSocket Styles */
+        .websocket-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .status-online {
+            color: #28a745;
+        }
+
+        .status-offline {
+            color: #dc3545;
+        }
+
+        .status-connecting {
+            color: #ffc107;
+        }
+
+        .websocket-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-connect {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-disconnect {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-heartbeat {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .websocket-log {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-content {
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 
@@ -140,6 +209,24 @@
         <button class="btn-state" onclick="getGameState()">Get Game State</button>
         <button class="btn-move" onclick="makeMove()">Make Move</button>
         <button class="btn-choose" onclick="choosePlayer()">Choose Player</button>
+    </div>
+
+    <!-- WebSocket Section -->
+    <div class="websocket-section">
+        <h3>🔌 WebSocket Connection</h3>
+        <div class="connection-status">
+            <span id="statusIndicator" class="status-offline">●</span>
+            <span id="statusText">Disconnected</span>
+        </div>
+        <div class="websocket-controls">
+            <button id="connectBtn" onclick="connectWebSocket()" class="btn-connect">Connect</button>
+            <button id="disconnectBtn" onclick="disconnectWebSocket()" class="btn-disconnect"
+                disabled>Disconnect</button>
+            <button onclick="sendHeartbeat()" class="btn-heartbeat" disabled>Send Heartbeat</button>
+        </div>
+        <div class="websocket-log">
+            <div id="wsLog" class="log-content"></div>
+        </div>
     </div>
 
     <div id="result">Results will appear here...</div>
@@ -241,7 +328,7 @@
                 return;
             }
 
-            if (move.length !== 2 || !['x', 'o'].includes(move[0].toLowerCase()) || isNaN(move[1]) || move[1] < '0' || move[1] > '8') {
+            if (move.length !== 2 || !['x', 'o'].includes(move[0].toLowerCase()) || isNaN(move[1]) || move[1] < '1' || move[1] > '9') {
                 showResult('Invalid move format. Use format like "x4" or "o7" (position 0-8)', true);
                 return;
             }
@@ -302,6 +389,138 @@
             } catch (error) {
                 showResult(`❌ Network Error: ${error.message}`, true);
             }
+        }
+
+        // WebSocket functionality
+        let ws = null;
+        let heartbeatInterval = null;
+
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                logWebSocket('Already connected!');
+                return;
+            }
+
+            updateConnectionStatus('connecting', 'Connecting...');
+
+            try {
+                ws = new WebSocket('ws://localhost:8080/ws');
+
+                ws.onopen = function () {
+                    updateConnectionStatus('online', 'Connected');
+                    logWebSocket('✅ WebSocket connected successfully');
+                    enableWebSocketControls(true);
+                    startHeartbeat();
+                };
+
+                ws.onmessage = function (event) {
+                    logWebSocket(`📨 Received: ${event.data}`);
+                };
+
+                ws.onclose = function () {
+                    updateConnectionStatus('offline', 'Disconnected');
+                    logWebSocket('❌ WebSocket disconnected');
+                    enableWebSocketControls(false);
+                    stopHeartbeat();
+
+                    // 🔥 Create NEW WebSocket connection
+                    setTimeout(() => {
+                        if (document.getElementById('playerId').value) {
+                            logWebSocket('🔄 Creating new WebSocket connection...');
+                            connectWebSocket();  // This creates a completely new WebSocket
+                        }
+                    }, 3000);
+                };
+
+                ws.onerror = function (error) {
+                    updateConnectionStatus('offline', 'Connection Error');
+                    logWebSocket(`❌ WebSocket error: ${error}`);
+                    enableWebSocketControls(false);
+                    stopHeartbeat();
+                };
+
+            } catch (error) {
+                updateConnectionStatus('offline', 'Connection Failed');
+                logWebSocket(`❌ Failed to create WebSocket: ${error.message}`);
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            updateConnectionStatus('offline', 'Disconnected');
+            enableWebSocketControls(false);
+            stopHeartbeat();
+            logWebSocket('🔌 WebSocket manually disconnected');
+        }
+
+        function sendHeartbeat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const heartbeat = {
+                    type: 'heartbeat',
+                    timestamp: new Date().toISOString(),
+                    message: 'ping'
+                };
+
+                ws.send(JSON.stringify(heartbeat));
+                logWebSocket(`💓 Sent heartbeat: ${JSON.stringify(heartbeat)}`);
+            } else {
+                logWebSocket('❌ Cannot send heartbeat - not connected');
+            }
+        }
+
+        function updateConnectionStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            // Remove all status classes
+            indicator.classList.remove('status-online', 'status-offline', 'status-connecting');
+
+            // Add appropriate status class
+            switch (status) {
+                case 'online':
+                    indicator.classList.add('status-online');
+                    break;
+                case 'offline':
+                    indicator.classList.add('status-offline');
+                    break;
+                case 'connecting':
+                    indicator.classList.add('status-connecting');
+                    break;
+            }
+
+            statusText.textContent = text;
+        }
+
+        function enableWebSocketControls(connected) {
+            document.getElementById('connectBtn').disabled = connected;
+            document.getElementById('disconnectBtn').disabled = !connected;
+            document.querySelector('.btn-heartbeat').disabled = !connected;
+        }
+
+        function startHeartbeat() {
+            // Send heartbeat every 30 seconds
+            heartbeatInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendHeartbeat();
+                }
+            }, 30000);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+        }
+
+        function logWebSocket(message) {
+            const logDiv = document.getElementById('wsLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
         }
     </script>
 </body>

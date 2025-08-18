@@ -25,7 +25,8 @@ func (g *GameStore) CreateGameState(state, playerOne, playerTwo, status string) 
 		log.Println("[CreateGameState] Failed to create game state: ", err)
 		return nil, err
 	}
-	log.Println("[CreateGameState] Game state created: ", result)
+	insertID, _ := result.LastInsertId()
+	log.Println("[CreateGameState] Game state created: ", insertID)
 	return result, err
 }
 
