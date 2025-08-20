@@ -23,11 +23,6 @@ var gameGroups = make(map[string][]string)
 
 // addClient adds a client to the playerConnections map
 func addClient(conn *websocket.Conn, playerUUID string) {
-	// 🔥 Handle reconnection: remove old connection first
-	if oldConn, exists := playerConnections[playerUUID]; exists {
-		log.Printf("Player %s reconnecting, closing old connection", playerUUID)
-		oldConn.Close() // Close old connection
-	}
 
 	playerConnections[playerUUID] = conn
 	log.Printf("Player %s connected/reconnected", playerUUID)
@@ -52,21 +47,32 @@ func addPlayerToGame(playerUUID, gameID string) {
 		gameGroups[gameID] = []string{}
 	}
 	gameGroups[gameID] = append(gameGroups[gameID], playerUUID)
+	log.Printf("Player %s added to game %s", playerUUID, gameID)
 }
 
-func SendToPlayer(playerUUID, message string) {
+func SendToPlayer(playerUUID string, message any) {
+	log.Printf("[SendToPlayer] Sending to player %s: %+v", playerUUID, message)
 	if conn, exists := playerConnections[playerUUID]; exists {
-		conn.WriteMessage(websocket.TextMessage, []byte(message))
+		jsonMsg, err := json.Marshal(message)
+		if err != nil {
+			log.Printf("Failed to marshal message: %v", err)
+			return
+		}
+		conn.WriteMessage(websocket.TextMessage, jsonMsg)
 	}
 }
 
-// Change from lowercase to uppercase to make it public
-func SendToGame(gameID, message string) {
-	log.Printf("[SendToGame] Sending to game: %s", message)
+func SendToGame(gameID string, message any) {
+	log.Printf("[SendToGame] Sending to game: %+v", message)
 	if players, exists := gameGroups[gameID]; exists {
+		jsonMsg, err := json.Marshal(message)
+		if err != nil {
+			log.Printf("Failed to marshal message: %v", err)
+			return
+		}
 		for _, playerUUID := range players {
 			if conn, exists := playerConnections[playerUUID]; exists {
-				conn.WriteMessage(websocket.TextMessage, []byte(message))
+				conn.WriteMessage(websocket.TextMessage, jsonMsg)
 			}
 		}
 	}
@@ -118,8 +124,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 type WebSocketMessage struct {
-	PlayerUUID string `json:"player_uuid"`
-	GameID     string `json:"game_id"`
+	PlayerUUID string `json:"playerId"`
+	GameID     string `json:"gameId"`
 	Message    string `json:"message"`
 }
 
@@ -130,7 +136,7 @@ func handleWebSocketMessage(ws *websocket.Conn, message string) {
 		ws.WriteMessage(websocket.TextMessage, []byte("Invalid message format"))
 		return
 	}
-	log.Printf("Received: %+v", msg)
+	log.Printf("[WebSocket]Received: %+v", msg)
 	switch msg.Message {
 	case "heartbeat":
 		SendToPlayer(msg.PlayerUUID, "heartbeat")
