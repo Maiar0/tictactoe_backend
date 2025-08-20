@@ -14,6 +14,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	loggedMux := utils.LoggingMiddleware(mux)
+	corsMux := utils.CORSMiddleware(loggedMux) // Apply CORS middleware
+
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
@@ -26,6 +28,6 @@ func main() {
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", loggedMux))
+	log.Fatal(http.ListenAndServe(":5000", corsMux))
 
 }

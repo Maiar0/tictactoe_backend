@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -31,7 +32,12 @@ func WriteJSONError(w http.ResponseWriter, code int, msg string) {
 // Returns an error if reading or JSON decoding fails.
 func ReadRequestBody(w http.ResponseWriter, r *http.Request, target any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	log.Printf("[ReadRequestBody] Raw body: %s", string(bodyBytes))
+	if err := json.Unmarshal(bodyBytes, target); err != nil {
 		return err
 	}
 	log.Printf("[ReadRequestBody] Request body decoded successfully: %+v", target)
@@ -79,5 +85,28 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 		log.Printf("[RES] %s %s -> %d (%v)", r.Method, r.URL.Path, rec.status, duration)
+	})
+}
+
+// CORSMiddleware allows all origins for development purposes.
+// TODO:: This should be configured properly for production.
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow all origins
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// Allow common headers
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+
+		// Allow common methods
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }

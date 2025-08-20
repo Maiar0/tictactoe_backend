@@ -12,10 +12,11 @@ import (
 )
 
 type newGameReq struct {
-	PlayerUUID string `json:"player_uuid"`
+	PlayerUUID string `json:"playerId"`
+	IsAi       bool   `json:"isAi"`
 }
 type newGameResp struct {
-	GameID string `json:"game_id"`
+	GameID string `json:"gameId"`
 }
 
 func newGame(w http.ResponseWriter, r *http.Request) {
@@ -31,9 +32,13 @@ func newGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//logic
-	if req.PlayerUUID == "" {
-		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID Required.")
+	if req.PlayerUUID == "" && req.IsAi {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID && IsAi is required.")
 		return
+	}
+	//AI Logic
+	if req.IsAi { //TODO: implement AI logic
+		log.Println("[newGame] Creating new game with AI for player UUID: ", req.PlayerUUID)
 	}
 	log.Println("[newGame] Creating new game for player UUID: ", req.PlayerUUID)
 	id, err := tttStore.NewGame()
