@@ -10,7 +10,7 @@ import (
 func MakeMove(gameID, move string) (string, error) {
 	//prepare move
 	turn := move[0]
-	position := int(move[1]-'0') - 1
+	position := int(move[1] - '0')
 	log.Println("[MakeMove] Turn: ", turn, " Position: ", position)
 	gameState, err := store.GetGameState(gameID)
 	if err != nil {
