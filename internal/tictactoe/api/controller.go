@@ -52,8 +52,8 @@ func newGame(w http.ResponseWriter, r *http.Request) {
 }
 
 type getGameStateReq struct {
-	PlayerUUID string `json:"player_uuid"`
-	GameID     string `json:"game_id"`
+	PlayerUUID string `json:"playerId"`
+	GameID     string `json:"gameId"`
 }
 type getGameStateResp struct {
 	GameState string `json:"game_state"`
@@ -86,8 +86,8 @@ func getGameState(w http.ResponseWriter, r *http.Request) {
 }
 
 type choosePlayerReq struct {
-	PlayerUUID   string `json:"player_uuid"`
-	GameID       string `json:"game_id"`
+	PlayerUUID   string `json:"playerId"`
+	GameID       string `json:"gameId"`
 	PlayerChoice string `json:"choice"` // "x" or "o"
 }
 type choosePlayerResp struct {
@@ -105,7 +105,7 @@ func choosePlayer(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Bad Request")
 		return
 	}
-	if req.PlayerUUID == "" || req.GameID == "" {
+	if req.PlayerUUID == "" || req.GameID == "" || req.PlayerChoice == "" {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Player UUID and Game ID Required.")
 		return
 	}
@@ -143,8 +143,8 @@ func choosePlayer(w http.ResponseWriter, r *http.Request) {
 }
 
 type makeMoveReq struct {
-	PlayerUUID string `json:"player_uuid"`
-	GameID     string `json:"game_id"`
+	PlayerUUID string `json:"playerId"`
+	GameID     string `json:"gameId"`
 	Move       string `json:"move"` // 2 Character string representing the move char o || x and a number 0-8 (e.g. "x0", "o2", "x8")
 }
 
@@ -173,6 +173,7 @@ func makeMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !strings.EqualFold(string(gameState.State[9]), string(req.Move[0])) {
+		log.Printf("[makeMove] Player UUID does not match the current player's turn: %s != %s", string(gameState.State[9]), string(req.Move[0]))
 		utils.WriteJSONError(w, http.StatusForbidden, "It's not your turn.")
 		return
 	}
@@ -183,12 +184,13 @@ func makeMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var playersTurn string
-	if turn == 'x' {
+	if turn == 'X' {
 		playersTurn = gameState.PlayerX
 	} else {
 		playersTurn = gameState.PlayerO
 	}
 	if playersTurn != req.PlayerUUID {
+		log.Printf("[makeMove] Player UUID does not match the current player's turn.", playersTurn, req.PlayerUUID)
 		utils.WriteJSONError(w, http.StatusForbidden, "It's not your turn.")
 		return
 	}
